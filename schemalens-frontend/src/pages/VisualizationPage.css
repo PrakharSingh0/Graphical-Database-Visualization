@@ -1,0 +1,350 @@
+/* --- Modal Styles --- */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #2d3748; /* Dark background to match sidebar */
+  color: #dbdbdbff;
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #4a5568;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 99px;
+}
+.modal-close-btn:hover {
+  background-color: #4a5568;
+  color: #fff;
+}
+
+.modal-body {
+  overflow-y: auto;
+  padding-right: 10px; /* For scrollbar */
+}
+
+.modal-body h4 {
+  color: #00b4ff; /* Use table color for headers */
+  margin-top: 10px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+.modal-divider {
+  border: none;
+  border-top: 1px solid #4a5568;
+  margin: 20px 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #4a5568;
+  padding-top: 16px;
+  margin-top: 20px;
+}
+
+/* Override .button for modal */
+.modal-footer .button {
+  padding: 8px 16px;
+}
+
+.button.button-secondary {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+.button.button-secondary:hover {
+  background-color: #718096;
+}
+
+/* --- Form Group Styles --- */
+.settings-form-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.settings-form-group label {
+  font-size: 0.875rem;
+  color: #cbd5e0;
+  margin-right: 16px;
+}
+
+.settings-form-group input[type="number"] {
+  width: 80px;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #fff;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 0.875rem;
+}
+
+.settings-form-group input[type="color"] {
+  width: 80px;
+  height: 34px;
+  padding: 2px;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* --- Main Page Layout --- */
+.page-container {
+  display: flex;
+  height: 100vh;
+  background-color: #1a202c; /* Dark background */
+  color: #e2e8f0; /* Light text */
+}
+
+.sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  background-color: #2d3748; /* Slightly lighter dark shade */
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #4a5568;
+  overflow-y: auto;
+}
+
+.main-content {
+  flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- Sidebar Header --- */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.sidebar-header-icon-container {
+  background-color: #4a5568;
+  border-radius: 8px;
+  padding: 8px;
+  margin-right: 16px;
+}
+
+.sidebar-header-icon {
+  width: 32px;
+  height: 32px;
+  color: #00b4ff;
+}
+
+.sidebar-header-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+  color: #fff;
+}
+
+.sidebar-header-subtitle {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* --- Controls --- */
+.controls-container {
+  margin-bottom: 24px;
+}
+
+.search-input-container {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: #94a3b8;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 10px 10px 40px;
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+.search-input::placeholder {
+  color: #94a3b8;
+}
+
+.buttons-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #4a5568;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.button:hover {
+  background-color: #718096;
+}
+
+.button-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* --- Schema Info --- */
+.schema-info-container {
+  background-color: #1a202c;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.schema-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.125rem;
+  color: #fff;
+  margin: 0 0 16px 0;
+  border-bottom: 1px solid #4a5568;
+  padding-bottom: 12px;
+}
+
+.schema-info-header-icon {
+  width: 20px;
+  height: 20px;
+  color: #00b4ff;
+}
+
+.schema-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+}
+.schema-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.schema-info-row-label {
+  color: #94a3b8;
+}
+
+.schema-info-row-value {
+  font-weight: bold;
+  color: #fff;
+}
+
+.schema-info-row-value-db {
+  font-weight: bold;
+  background-color: #00b4ff;
+  color: #1a202c;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* --- Node Details --- */
+.node-details-section {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 10px; /* Space for scrollbar */
+}
+
+.node-details-header-sticky {
+  position: sticky;
+  top: 0;
+  background-color: #2d3748; /* Match sidebar background */
+  padding: 12px 0;
+  margin: 0;
+  font-size: 1.125rem;
+  color: #fff;
+  border-bottom: 1px solid #4a5568;
+}
+
+/* --- SVG Styles --- */
+.main-content svg {
+  display: block;
+}
+
+.pan-zoom-hint {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background-color: rgba(45, 55, 72, 0.8);
+  color: #cbd5e0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+/* --- Zoom Level --- */
+.zoom-level {
+  flex-shrink: 0;
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid #4a5568;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}

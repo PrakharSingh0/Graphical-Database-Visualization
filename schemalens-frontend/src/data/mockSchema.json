@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "users",
+      "label": "Users",
+      "columns": ["user_id (PK)", "username", "password_hash", "created_at", "last_login", "is_admin"]
+    },
+    {
+      "id": "customers",
+      "label": "Customers (Profile)",
+      "columns": ["customer_id (PK/FK:users)", "first_name", "last_name", "email", "phone_number", "default_shipping_id"]
+    },
+    {
+      "id": "addresses",
+      "label": "Addresses",
+      "columns": ["address_id (PK)", "customer_id (FK)", "street", "city", "state", "zip_code", "country"]
+    },
+    {
+      "id": "orders",
+      "label": "Orders",
+      "columns": ["order_id (PK)", "customer_id (FK)", "order_date", "total_amount", "shipping_address_id (FK)", "status", "payment_method"]
+    },
+    {
+      "id": "products",
+      "label": "Products",
+      "columns": ["product_id (PK)", "sku", "name", "description", "price", "category_id (FK)", "weight_oz"]
+    },
+    {
+      "id": "categories",
+      "label": "Categories",
+      "columns": ["category_id (PK)", "name", "parent_category_id (FK)"]
+    },
+    {
+      "id": "order_items",
+      "label": "Order Items",
+      "columns": ["order_item_id (PK)", "order_id (FK)", "product_id (FK)", "quantity", "unit_price", "discount"]
+    },
+    {
+      "id": "reviews",
+      "label": "Product Reviews",
+      "columns": ["review_id (PK)", "product_id (FK)", "customer_id (FK)", "rating", "review_text", "review_date"]
+    },
+    {
+      "id": "inventory",
+      "label": "Inventory",
+      "columns": ["inventory_id (PK)", "product_id (FK)", "warehouse_id (FK)", "stock_level", "last_restock_date"]
+    },
+    {
+      "id": "warehouses",
+      "label": "Warehouses",
+      "columns": ["warehouse_id (PK)", "name", "location_city", "manager_id"]
+    }
+  ],
+  "edges": [
+    { "source": "users", "target": "customers" },
+    { "source": "customers", "target": "orders" },
+    { "source": "customers", "target": "addresses" },
+    { "source": "customers", "target": "reviews" },
+    { "source": "orders", "target": "order_items" },
+    { "source": "orders", "target": "addresses" },
+    { "source": "products", "target": "order_items" },
+    { "source": "products", "target": "categories" },
+    { "source": "products", "target": "reviews" },
+    { "source": "products", "target": "inventory" },
+    { "source": "categories", "target": "products" },
+    { "source": "inventory", "target": "warehouses" },
+    { "source": "warehouses", "target": "inventory" }
+  ]
+}
