@@ -465,6 +465,9 @@ export default function VisualizationPage() {
         .duration(750)
         .call(zoomRef.current.transform, d3.zoomIdentity);
     }
+    setSearchTerm("");
+    setSelectedNode(null);
+    setGraphKey((prevKey) => prevKey + 1);
   };
 
   // --- Handler for saving settings from modal ---
