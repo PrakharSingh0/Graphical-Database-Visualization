@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+// src/pages/VisualizationPage.jsx
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as d3 from "d3";
 import NodeDetails from "../components/NodeDetails";
 import SettingsModal from "../components/SettingsModal.jsx"; // <-- Import new component
-import schema from "../data/mockSchema.json";
+import mockSchema from "../data/mockSchema.json"; // keep as fallback
 import {
   CubeIcon,
   TableCellsIcon,
@@ -27,6 +28,8 @@ const INITIAL_SETTINGS = {
   TRANSITION_DURATION: 350,
 };
 
+const BACKEND_SCHEMA_URL = "http://localhost:8000/api/schema/sample"; // change if different
+
 export default function VisualizationPage() {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
@@ -40,12 +43,55 @@ export default function VisualizationPage() {
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // Schema state (start with local mock as fallback)
+  const [schema, setSchema] = useState(mockSchema);
+  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [schemaError, setSchemaError] = useState(null);
+
   // ... (Refs remain the same) ...
   const graphDataRef = useRef({ nodes: [], links: [] });
   const simRef = useRef(null);
   const selectionsRef = useRef({ g: null, nodeGroup: null, linkGroup: null });
   const zoomRef = useRef(null);
   const activeTablesRef = useRef([]);
+
+  // Fetch schema from backend once on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSchema = async () => {
+      setLoadingSchema(true);
+      setSchemaError(null);
+      try {
+        const res = await fetch(BACKEND_SCHEMA_URL, { method: "GET" });
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        const payload = await res.json();
+        // backend returns { status: "ok", schema: {...} }
+        const fetched = payload?.schema ?? payload;
+        if (!cancelled && fetched && fetched.nodes) {
+          setSchema(fetched);
+          // bump graphKey to force full re-init of D3 with new data
+          setGraphKey((k) => k + 1);
+        } else if (!cancelled) {
+          throw new Error("Invalid schema structure returned");
+        }
+      } catch (err) {
+        console.error("Failed to fetch schema:", err);
+        if (!cancelled) {
+          setSchemaError(String(err.message ?? err));
+          // keep using local mockSchema (already set by initial state)
+        }
+      } finally {
+        if (!cancelled) setLoadingSchema(false);
+      }
+    };
+
+    fetchSchema();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 1. Resizing Effect (remains the same)
   useEffect(() => {
@@ -73,7 +119,7 @@ export default function VisualizationPage() {
   }, [dimensions]);
 
   // 3. Main D3 Initialization Effect
-  // *** NOW DEPENDS ON 'settings' ***
+  // *** NOW DEPENDS ON 'settings' and 'schema' ***
   useEffect(() => {
     if (!svgRef.current) return;
 
@@ -96,15 +142,19 @@ export default function VisualizationPage() {
     const height = Math.max(dimensions.height, 600);
 
     // Initial Data Setup: Use 'expanded' for internal logic consistency
-    graphDataRef.current.nodes = schema.nodes.map((n) => ({
+    // Ensure schema exists and has nodes/edges
+    const safeNodes = (schema && schema.nodes) ? schema.nodes : [];
+    const safeEdges = (schema && schema.edges) ? schema.edges : [];
+
+    graphDataRef.current.nodes = safeNodes.map((n) => ({
       ...n,
       type: "table",
       expanded: n.expanded || false,
     }));
-    graphDataRef.current.links = schema.edges.map((e) => ({
+    graphDataRef.current.links = safeEdges.map((e) => ({
       source: graphDataRef.current.nodes.find((n) => n.id === e.source),
       target: graphDataRef.current.nodes.find((n) => n.id === e.target),
-    }));
+    })).filter(l => l.source && l.target);
 
     let nodes = graphDataRef.current.nodes;
     let links = graphDataRef.current.links;
@@ -439,7 +489,7 @@ export default function VisualizationPage() {
     });
 
     return () => sim.stop();
-  }, [dimensions, graphKey, settings]); // <-- ADD settings HERE
+  }, [dimensions, graphKey, settings, schema]); // <-- ADD schema HERE
 
   // 4. Search Filter Effect (remains the same)
   useEffect(() => {
@@ -540,6 +590,19 @@ export default function VisualizationPage() {
             <strong className="schema-info-row-value">
               {schema.edges.length}
             </strong>
+          </div>
+
+          {/* Schema fetch status */}
+          <div style={{ marginTop: 8 }}>
+            {loadingSchema ? (
+              <div className="schema-status">Loading schema...</div>
+            ) : schemaError ? (
+              <div className="schema-status error">
+                Schema load error: {schemaError}
+              </div>
+            ) : (
+              <div className="schema-status ok">Schema loaded</div>
+            )}
           </div>
         </div>
 

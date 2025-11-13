@@ -1,0 +1,67 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+*.spec
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+pip-wheel-metadata/
+
+# FastAPI + Uvicorn logs
+*.log
+
+# IDE settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+
+# Database files
+*.db
+*.sqlite3
+
+# Testing
+htmlcov/
+.tox/
+.coverage
+coverage.xml
+pytest_cache/
+nosetests.xml
+test-results/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Pydantic compiled models
+__pydantic__/ 
+
+# Docker
+*.pid
+*.pid.lock
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Optional: frontend build artifacts if using React/Vue with FastAPI
+frontend/node_modules/
+frontend/dist/
