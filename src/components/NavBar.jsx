@@ -32,7 +32,6 @@ export default function NavBar() {
           <i className="fa-solid fa-house text-xl"></i>
         </Link>
         &nbsp;&nbsp;
-
         <Link to="/about" className="nav-link">About</Link>
         <Link to="/dashboard" className="nav-link">Visualizer</Link>
 
