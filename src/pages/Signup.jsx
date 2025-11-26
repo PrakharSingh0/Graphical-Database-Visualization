@@ -20,7 +20,6 @@ export default function Signup() {
       alert('Sign up failed: ' + err.message)
     } finally { setLoading(false) }
   }
-
   return (
     <div className="page auth">
       <div className="auth-card" style={{animation:'float-in 420ms ease'}}>
