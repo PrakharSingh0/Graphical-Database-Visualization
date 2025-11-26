@@ -8,7 +8,6 @@ export default function InlineNetwork({ density = 18, color = 'rgba(127,90,240,0
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
     let width = canvas.clientWidth
     let height = canvas.clientHeight
     canvas.width = width
