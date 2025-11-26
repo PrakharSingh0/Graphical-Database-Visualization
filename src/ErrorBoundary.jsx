@@ -10,7 +10,6 @@ export default class ErrorBoundary extends React.Component {
     console.error('ErrorBoundary caught:', error, info)
     this.setState({ error, info })
   }
-
   render() {
     if (this.state.error) {
       return (
