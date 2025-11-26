@@ -13,7 +13,6 @@ export default function ScrollProgress(){
 		onScroll()
 		return ()=> window.removeEventListener('scroll', onScroll)
 	},[])
-
 	return (
 		<div className="scroll-progress" aria-hidden>
 			<div className="scroll-progress-bar" style={{width: `${pct}%`}} />
