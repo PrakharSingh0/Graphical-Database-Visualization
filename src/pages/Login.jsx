@@ -9,7 +9,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { setUser } = useContext(AuthContext)
   const navigate = useNavigate()
-
   const handleGoogle = async () => {
     setLoading(true)
     try {
