@@ -513,7 +513,6 @@ body{
   border-radius:12px;
   padding:12px;
 }
-
 @media(max-width:900px){
   .features{flex-direction:column;}
   .dash-main{flex-direction:column;}
