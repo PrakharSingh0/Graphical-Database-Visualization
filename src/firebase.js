@@ -44,3 +44,4 @@ export const emailSignUp = (email, password) =>
   createUserWithEmailAndPassword(getAuth(), email, password)
 
 export const signUserOut = () => signOut(getAuth())
+
