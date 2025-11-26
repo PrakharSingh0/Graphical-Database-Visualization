@@ -1,5 +1,4 @@
 import React from 'react'
-
 export default function PageLoader({ visible = false }) {
   if (!visible) return null
   return (
