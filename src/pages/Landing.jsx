@@ -50,7 +50,6 @@ export default function Landing() {
               height: '80px',
               objectFit: 'contain',
               borderRadius: '16px',
-              
               background:
                 'radial-gradient(circle at 0% 0%, rgba(127,90,240,0.18), transparent 55%), radial-gradient(circle at 100% 100%, rgba(90,208,255,0.12), transparent 55%)',
             }}
