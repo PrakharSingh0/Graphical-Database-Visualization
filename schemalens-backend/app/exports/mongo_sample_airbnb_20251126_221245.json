@@ -1,0 +1,79 @@
+{
+  "database": "sample_airbnb",
+  "db_type": "mongodb",
+  "nodes": [
+    {
+      "id": "listingsAndReviews",
+      "label": "Listingsandreviews",
+      "columns": [
+        "_id (PK)",
+        "access",
+        "accommodates",
+        "address",
+        "amenities",
+        "availability",
+        "bathrooms",
+        "bed_type",
+        "bedrooms",
+        "beds",
+        "calendar_last_scraped",
+        "cancellation_policy",
+        "cleaning_fee",
+        "description",
+        "extra_people",
+        "first_review",
+        "guests_included",
+        "host",
+        "house_rules",
+        "images",
+        "interaction",
+        "last_review",
+        "last_scraped",
+        "listing_url",
+        "maximum_nights",
+        "minimum_nights",
+        "monthly_price",
+        "name",
+        "neighborhood_overview",
+        "notes",
+        "number_of_reviews",
+        "price",
+        "property_type",
+        "review_scores",
+        "reviews",
+        "room_type",
+        "security_deposit",
+        "space",
+        "summary",
+        "transit",
+        "weekly_price"
+      ],
+      "sample_count": 200
+    },
+    {
+      "id": "Thela",
+      "label": "Thela",
+      "columns": [],
+      "sample_count": 0
+    },
+    {
+      "id": "Katora",
+      "label": "Katora",
+      "columns": [
+        "Thela_id (FK:Thela)",
+        "_id (PK)",
+        "is_fresh",
+        "is_spicy",
+        "item_name",
+        "price"
+      ],
+      "sample_count": 4
+    }
+  ],
+  "edges": [
+    {
+      "source": "Katora",
+      "target": "Thela"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 // src/pages/VisualizationPage.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useLocation, Link } from "react-router-dom";
 import * as d3 from "d3";
 import NodeDetails from "../components/NodeDetails";
 import SettingsModal from "../components/SettingsModal.jsx"; // <-- Import new component
@@ -9,7 +10,10 @@ import {
   TableCellsIcon,
   ArrowPathIcon,
   MagnifyingGlassIcon,
-  Cog6ToothIcon, // <-- Import settings icon
+  Cog6ToothIcon, 
+  WrenchScrewdriverIcon,
+  XCircleIcon,
+  ArrowUturnLeftIcon,
 } from "@heroicons/react/24/outline";
 import "./VisualizationPage.css";
 
@@ -38,6 +42,8 @@ export default function VisualizationPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [zoomLevel, setZoomLevel] = useState(1);
   const [graphKey, setGraphKey] = useState(0);
+  const location = useLocation();
+  const [history, setHistory] = useState([]);
 
   // --- State for Settings ---
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
@@ -58,12 +64,13 @@ export default function VisualizationPage() {
   // Fetch schema from backend once on mount
   useEffect(() => {
     let cancelled = false;
+    const schemaUrl = location.state?.schemaUrl || BACKEND_SCHEMA_URL;
 
     const fetchSchema = async () => {
       setLoadingSchema(true);
       setSchemaError(null);
       try {
-        const res = await fetch(BACKEND_SCHEMA_URL, { method: "GET" });
+        const res = await fetch(schemaUrl, { method: "GET" });
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
         const payload = await res.json();
         // backend returns { status: "ok", schema: {...} }
@@ -91,7 +98,7 @@ export default function VisualizationPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [location.state?.schemaUrl]);
 
   // 1. Resizing Effect (remains the same)
   useEffect(() => {
@@ -291,6 +298,7 @@ export default function VisualizationPage() {
 
             gEnter.on("click", (event, d) => {
               event.stopPropagation();
+              setHistory((prev) => [...prev, selectedNode]);
               setSelectedNode(d);
             });
 
@@ -526,6 +534,14 @@ export default function VisualizationPage() {
     setIsSettingsOpen(false);
   };
 
+  const undo = () => {
+    if (history.length > 0) {
+      const lastNode = history[history.length - 1];
+      setHistory(history.slice(0, -1));
+      setSelectedNode(lastNode);
+    }
+  };
+
   // --- React UI Structure (Maintained Original Structure and Classes) ---
   return (
     <div className="page-container">
@@ -562,8 +578,17 @@ export default function VisualizationPage() {
               <Cog6ToothIcon className="button-icon" />
               Settings
             </button>
+            <Link to="/connections" className="button">
+              <WrenchScrewdriverIcon className="button-icon" />
+              Connections
+            </Link>
             <button onClick={() => setSelectedNode(null)} className="button">
+              <XCircleIcon className="button-icon" />
               Clear
+            </button>
+            <button onClick={undo} className="button">
+              <ArrowUturnLeftIcon className="button-icon" />
+              Undo
             </button>
           </div>
         </div>

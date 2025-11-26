@@ -1,0 +1,89 @@
+/* Dark transparent background */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+}
+
+/* Modal box */
+.modal-container {
+  background: #101622;
+  padding: 24px;
+  width: 380px;
+  border-radius: 10px;
+  border: 1px solid #1c2537;
+  box-shadow: 0 0 15px #00e0ff33;
+  animation: pop 0.2s ease-out;
+}
+
+/* Animation */
+@keyframes pop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-title {
+  color: #e9eef5;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  background: #0d131d;
+  border: 1px solid #283347;
+  color: #cdd9e5;
+  border-radius: 6px;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: #00e0ff;
+  box-shadow: 0 0 6px #00e0ff55;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+  gap: 10px;
+}
+
+.modal-btn {
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  border: none;
+}
+
+.modal-btn-cancel {
+  background: #1c2533;
+  color: #d0d8e1;
+}
+
+.modal-btn-cancel:hover {
+  background: #2a3447;
+}
+
+.modal-btn-confirm {
+  background: #009dff;
+  color: white;
+}
+
+.modal-btn-confirm:hover {
+  background: #35b8ff;
+}

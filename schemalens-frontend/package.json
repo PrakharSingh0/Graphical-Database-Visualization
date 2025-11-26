@@ -13,9 +13,10 @@
     "@heroicons/react": "^2.2.0",
     "d3": "^7.9.0",
     "dom": "^0.0.3",
+    "lodash": "^4.17.21",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
