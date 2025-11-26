@@ -12,7 +12,6 @@ import AuthModal from './components/AuthModal'
 import NetworkAnimation from './components/NetworkAnimation'
 import PageLoader from './components/PageLoader'
  
-
 export const AuthContext = createContext(null)
 export const AuthModalContext = createContext({ openModal: () => {}, closeModal: () => {} })
 
