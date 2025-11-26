@@ -7,7 +7,6 @@ function colorForStatus(status) {
   if (status === 'yellow') return '#f1c40f'
   return '#9b59b6'
 }
-
 export default function GraphVis({ data }) {
   const ref = useRef()
 
