@@ -1,5 +1,4 @@
 import React from "react"
-// NavBar is now rendered globally from App
 import { motion } from "framer-motion"
 
 const slideVariant = (direction = "left", delay = 0) => ({
@@ -17,6 +16,7 @@ const slideVariant = (direction = "left", delay = 0) => ({
     },
   },
 })
+
 export default function About() {
   return (
     <div className="page about">
@@ -312,7 +312,7 @@ export default function About() {
           style={{ fontSize: 12, marginTop: 32 }}
         >
           <small>
-            © {new Date().getFullYear()} Graph Neural Database Studio. Built to make
+            © {new Date().getFullYear()} Graph Neural Database Lens. Built to make
             complex databases easier to understand, evolve, and trust.
           </small>
         </footer>
