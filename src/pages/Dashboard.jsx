@@ -19,7 +19,6 @@ const sample = {
     { source: 'Enrollments', target: 'Courses', rel: 'FK: Course', O_Attention: 0.9, weight: 9 }
   ]
 }
-
 function tweak(hex, amt) {
   const c = d3.color(hex) || d3.color('#888')
   if (!c) return hex
