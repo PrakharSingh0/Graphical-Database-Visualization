@@ -7,7 +7,6 @@ export default function D3Dashboard() {
   const svgRef = useRef()
   const loadingRef = useRef()
   const sidebarRef = useRef()
-
   useEffect(() => {
     const container = containerRef.current
     const svgEl = svgRef.current
