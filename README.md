@@ -1,3 +1,4 @@
+https://dblens.vercel.app/
 # GNN Database Visualizer (Prototype)
 
 This is a minimal prototype for a landing page + Firebase auth + D3-based schema visualizer.
