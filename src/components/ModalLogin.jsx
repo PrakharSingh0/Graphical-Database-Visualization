@@ -8,7 +8,6 @@ export default function ModalLogin() {
   const [loading, setLoading] = useState(false)
   const { setUser } = useContext(AuthContext)
   const { closeModal, showLoading } = useContext(AuthModalContext)
-
   const handleGoogle = async () => {
     setLoading(true)
     try {
