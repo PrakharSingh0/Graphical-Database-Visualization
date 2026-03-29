@@ -1,75 +1,67 @@
-# app/routers/connections.py
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.models.connection import ConnectionProfile
+from app.core.database import get_db
 
-from app.db import SessionLocal
-import app.models as models
-
-router = APIRouter()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter(prefix="/api/connections", tags=["Connections"])
 
 
-# ----- Pydantic Schemas -----
-
-class ConnectionBase(BaseModel):
-    name: str = Field(..., description="Human-friendly name for this connection (eg. local mysql)")
-    db_type: str = Field(..., description="Database type, e.g. mysql, mongodb, postgres, sqlite")
-    connection_string: str = Field(..., description="Connection string / URI")
-
-
-class ConnectionCreate(ConnectionBase):
-    pass
+# ✅ CREATE
+@router.post("/")
+def create_connection(data: dict, db: Session = Depends(get_db)):
+    conn = ConnectionProfile(**data)
+    db.add(conn)
+    db.commit()
+    db.refresh(conn)
+    return conn
 
 
-class ConnectionOut(ConnectionBase):
-    id: int
-
-    class Config:
-        orm_mode = True
-
-
-# ----- Routes -----
-
-@router.get("/connections/", response_model=List[ConnectionOut])
+# ✅ READ ALL
+@router.get("/")
 def list_connections(db: Session = Depends(get_db)):
-    """
-    List all saved connection profiles.
-    """
-    profiles = db.query(models.ConnectionProfile).order_by(models.ConnectionProfile.id.desc()).all()
-    return profiles
+    return db.query(ConnectionProfile).all()
 
 
-@router.post("/connections/", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)
-def create_connection(payload: ConnectionCreate, db: Session = Depends(get_db)):
-    """
-    Create a new connection profile.
-    """
-    profile = models.ConnectionProfile(
-        name=payload.name,
-        db_type=payload.db_type,
-        connection_string=payload.connection_string,
-    )
-    db.add(profile)
+# ✅ READ ONE (optional but useful)
+@router.get("/{connection_id}")
+def get_connection(connection_id: str, db: Session = Depends(get_db)):
+    conn = db.query(ConnectionProfile).filter_by(id=connection_id).first()
+
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+
+    return conn
+
+
+# ✅ UPDATE
+@router.put("/{connection_id}")
+def update_connection(connection_id: str, data: dict, db: Session = Depends(get_db)):
+    conn = db.query(ConnectionProfile).filter_by(id=connection_id).first()
+
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+
+    # Update fields
+    conn.name = data.get("name", conn.name)
+    conn.db_type = data.get("db_type", conn.db_type)
+    conn.mode = data.get("mode", conn.mode)
+    conn.config = data.get("config", conn.config)
+
     db.commit()
-    db.refresh(profile)
-    return profile
+    db.refresh(conn)
+
+    return {"message": "Updated successfully", "data": conn}
 
 
-@router.delete("/connections/{conn_id}", status_code=204)
-def delete_connection(conn_id: int, db: Session = Depends(get_db)):
-    profile = db.query(models.ConnectionProfile).filter(models.ConnectionProfile.id == conn_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Connection profile not found")
-    db.delete(profile)
+# ✅ DELETE
+@router.delete("/{connection_id}")
+def delete_connection(connection_id: str, db: Session = Depends(get_db)):
+    conn = db.query(ConnectionProfile).filter_by(id=connection_id).first()
+
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+
+    db.delete(conn)
     db.commit()
-    return Response(status_code=204)
+
+    return {"message": "Deleted successfully"}

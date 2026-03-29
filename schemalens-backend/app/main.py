@@ -1,38 +1,29 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 
-from app.routers import discover, sample, connections  # <-- connections imported here
+from app.routers import connections, discover, test_connection
+from app.core.database import Base, engine
 
-app = FastAPI(title="SchemaLens Backend", version="0.1.0")
+# Create tables
+Base.metadata.create_all(bind=engine)
 
+app = FastAPI(title="SchemaLens API")
+
+# CORS (frontend connect)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "*",  # dev only
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- static exports (from previous step) ---
-APP_DIR = Path(__file__).resolve().parent
-EXPORT_DIR = APP_DIR / "exports"
-EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-
-app.mount("/app/exports", StaticFiles(directory=EXPORT_DIR), name="exports")
+# Routes
+app.include_router(connections.router)
+app.include_router(discover.router)
+app.include_router(test_connection.router)
 
 
-# --- routers ---
-# schema discovery
-app.include_router(discover.router, prefix="/api/schema", tags=["discover"])
-# optional sample route: /api/schema/sample
-app.include_router(sample.router, prefix="/api/schema", tags=["sample"])
-# connections: /api/connections/...
-app.include_router(connections.router, prefix="/api", tags=["connections"])
+@app.get("/")
+def root():
+    return {"message": "SchemaLens Backend Running 🚀"}

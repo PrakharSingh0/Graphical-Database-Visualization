@@ -3,14 +3,17 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link } from "react-router-dom";
 import * as d3 from "d3";
 import NodeDetails from "../components/NodeDetails";
-import SettingsModal from "../components/SettingsModal.jsx"; // <-- Import new component
-import mockSchema from "../data/mockSchema.json"; // keep as fallback
+import SettingsModal from "../components/SettingsModal.jsx";
+import mockSchema from "../data/mockSchema.json";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+
 import {
   CubeIcon,
   TableCellsIcon,
   ArrowPathIcon,
   MagnifyingGlassIcon,
-  Cog6ToothIcon, 
+  Cog6ToothIcon,
   WrenchScrewdriverIcon,
   XCircleIcon,
   ArrowUturnLeftIcon,
@@ -32,8 +35,6 @@ const INITIAL_SETTINGS = {
   TRANSITION_DURATION: 350,
 };
 
-const BACKEND_SCHEMA_URL = "http://localhost:8000/api/schema/sample"; // change if different
-
 export default function VisualizationPage() {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
@@ -49,11 +50,6 @@ export default function VisualizationPage() {
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Schema state (start with local mock as fallback)
-  const [schema, setSchema] = useState(mockSchema);
-  const [loadingSchema, setLoadingSchema] = useState(false);
-  const [schemaError, setSchemaError] = useState(null);
-
   // ... (Refs remain the same) ...
   const graphDataRef = useRef({ nodes: [], links: [] });
   const simRef = useRef(null);
@@ -62,43 +58,22 @@ export default function VisualizationPage() {
   const activeTablesRef = useRef([]);
 
   // Fetch schema from backend once on mount
+  const incomingSchema = location.state?.schema;
+  const dbType = location.state?.dbType;
+
+  const [schema, setSchema] = useState(incomingSchema || mockSchema);
+  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [schemaError, setSchemaError] = useState(null);
+
+  // ✅ Update when navigation changes
   useEffect(() => {
-    let cancelled = false;
-    const schemaUrl = location.state?.schemaUrl || BACKEND_SCHEMA_URL;
-
-    const fetchSchema = async () => {
-      setLoadingSchema(true);
-      setSchemaError(null);
-      try {
-        const res = await fetch(schemaUrl, { method: "GET" });
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        const payload = await res.json();
-        // backend returns { status: "ok", schema: {...} }
-        const fetched = payload?.schema ?? payload;
-        if (!cancelled && fetched && fetched.nodes) {
-          setSchema(fetched);
-          // bump graphKey to force full re-init of D3 with new data
-          setGraphKey((k) => k + 1);
-        } else if (!cancelled) {
-          throw new Error("Invalid schema structure returned");
-        }
-      } catch (err) {
-        console.error("Failed to fetch schema:", err);
-        if (!cancelled) {
-          setSchemaError(String(err.message ?? err));
-          // keep using local mockSchema (already set by initial state)
-        }
-      } finally {
-        if (!cancelled) setLoadingSchema(false);
-      }
-    };
-
-    fetchSchema();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [location.state?.schemaUrl]);
+    if (incomingSchema && incomingSchema.nodes) {
+      setSchema(incomingSchema);
+      setGraphKey((k) => k + 1);
+    } else {
+      console.warn("No schema passed, using mock");
+    }
+  }, [incomingSchema]);
 
   // 1. Resizing Effect (remains the same)
   useEffect(() => {
@@ -125,6 +100,26 @@ export default function VisualizationPage() {
     }
   }, [dimensions]);
 
+  const exportPDF = async () => {
+    if (!containerRef.current) return;
+
+    const canvas = await html2canvas(containerRef.current, {
+      backgroundColor: "#05080f", // match your bg
+      scale: 2, // high quality
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "px",
+      format: [canvas.width, canvas.height],
+    });
+
+    pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+    pdf.save("schema-graph.pdf");
+  };
+
   // 3. Main D3 Initialization Effect
   // *** NOW DEPENDS ON 'settings' and 'schema' ***
   useEffect(() => {
@@ -150,23 +145,27 @@ export default function VisualizationPage() {
 
     // Initial Data Setup: Use 'expanded' for internal logic consistency
     // Ensure schema exists and has nodes/edges
-    const safeNodes = (schema && schema.nodes) ? schema.nodes : [];
-    const safeEdges = (schema && schema.edges) ? schema.edges : [];
+    const safeNodes = schema && schema.nodes ? schema.nodes : [];
+    const safeEdges = schema && schema.edges ? schema.edges : [];
 
     graphDataRef.current.nodes = safeNodes.map((n) => ({
       ...n,
+      label: n.label || n.id,
       type: "table",
       expanded: n.expanded || false,
     }));
-    graphDataRef.current.links = safeEdges.map((e) => ({
-      source: graphDataRef.current.nodes.find((n) => n.id === e.source),
-      target: graphDataRef.current.nodes.find((n) => n.id === e.target),
-    })).filter(l => l.source && l.target);
+    graphDataRef.current.links = safeEdges
+      .map((e) => ({
+        source: graphDataRef.current.nodes.find((n) => n.id === e.source),
+        target: graphDataRef.current.nodes.find((n) => n.id === e.target),
+      }))
+      .filter((l) => l.source && l.target);
 
     let nodes = graphDataRef.current.nodes;
     let links = graphDataRef.current.links;
 
     const svg = d3.select(svgRef.current);
+
     svg.selectAll("*").remove();
     const g = svg.append("g").attr("class", "viewport");
     selectionsRef.current.g = g;
@@ -177,7 +176,7 @@ export default function VisualizationPage() {
       .append("marker")
       .attr("id", "arrow")
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 15)
+      .attr("refX", 10)
       .attr("refY", 0)
       .attr("markerWidth", 6)
       .attr("markerHeight", 6)
@@ -197,11 +196,16 @@ export default function VisualizationPage() {
     const sim = d3
       .forceSimulation(nodes)
       .force("link", linkForce)
-      .force("charge", d3.forceManyBody().strength(-1000))
+      .force("charge", d3.forceManyBody().strength(-600))
+      .force("link", linkForce.distance(180))
+      .force(
+        "collision",
+        d3.forceCollide().radius((d) => (d.type === "table" ? 50 : 25)),
+      )
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force(
         "collision",
-        d3.forceCollide().radius((d) => (d.type === "table" ? Tnode : ANode)) // Use Tnode/ANode
+        d3.forceCollide().radius((d) => (d.type === "table" ? Tnode : ANode)), // Use Tnode/ANode
       );
 
     simRef.current = sim;
@@ -209,8 +213,10 @@ export default function VisualizationPage() {
     const linkGroup = g
       .append("g")
       .attr("class", "links")
-      .attr("stroke", LINK_COLOR)
-      .attr("stroke-opacity", 0.6);
+      .attr("stroke", "url(#link-gradient)")
+      .attr("stroke-width", 1.8)
+      .attr("stroke-opacity", 0.8)
+      .style("filter", "drop-shadow(0 0 6px #00e0ff44)");
     const nodeGroup = g.append("g").attr("class", "nodes");
     selectionsRef.current.linkGroup = linkGroup;
     selectionsRef.current.nodeGroup = nodeGroup;
@@ -250,10 +256,10 @@ export default function VisualizationPage() {
         .join(
           (enter) => enter.append("line").attr("marker-end", "url(#arrow)"),
           (update) => update,
-          (exit) => exit.remove()
+          (exit) => exit.remove(),
         )
         .attr("stroke", (d) =>
-          d.target.type === "attribute" ? ATTRIBUTE_COLOR : LINK_COLOR
+          d.target.type === "attribute" ? ATTRIBUTE_COLOR : LINK_COLOR,
         );
 
       // 2. Update Nodes
@@ -267,23 +273,23 @@ export default function VisualizationPage() {
               .call(drag(sim))
               .attr("opacity", 1) // Default visible
               .attr("class", (d) =>
-                d.type === "table" ? "table-node" : "attribute-node"
+                d.type === "table" ? "table-node" : "attribute-node",
               );
 
             gEnter
               .append("circle")
               .attr("r", (d) => (d.type === "table" ? Tnode : ANode))
               .attr("fill", (d) =>
-                d.type === "table" ? TABLE_COLOR : ATTRIBUTE_COLOR
+                d.type === "table" ? TABLE_COLOR : ATTRIBUTE_COLOR,
               )
               .attr("stroke", (d) =>
-                d.type === "table" ? TABLE_STROKE : ATTRIBUTE_STROKE
+                d.type === "table" ? TABLE_STROKE : ATTRIBUTE_STROKE,
               )
               .attr("stroke-width", 2);
 
             gEnter
               .append("text")
-              .text((d) => d.label)
+              .text((d) => d.label || d.id)
               .attr("text-anchor", "start")
               .attr("x", (d) => (d.type === "table" ? Tnode + 5 : ANode + 5))
               .attr("y", 6)
@@ -291,7 +297,9 @@ export default function VisualizationPage() {
               .attr("pointer-events", "none")
               .attr("fill", TEXT_COLOR)
               .style("font-size", (d) => (d.type === "table" ? "14px" : "10px"))
-              .style("font-weight", 700);
+              .style("font-weight", 600)
+              .style("letter-spacing", "0.5px")
+              .style("text-shadow", "0 0 6px #000");
 
             // Attributes are created starting at parent location and opacity 0
             gEnter.filter((d) => d.type === "attribute").attr("opacity", 0);
@@ -312,7 +320,7 @@ export default function VisualizationPage() {
             return gEnter;
           },
           (update) => update,
-          (exit) => exit.remove()
+          (exit) => exit.remove(),
         );
 
       if (simRestart) {
@@ -404,7 +412,7 @@ export default function VisualizationPage() {
       let links = graphDataRef.current.links;
 
       const attrsToRemove = nodes.filter(
-        (n) => n.type === "attribute" && n.parentTableId === tableNode.id
+        (n) => n.type === "attribute" && n.parentTableId === tableNode.id,
       );
 
       if (attrsToRemove.length === 0) return;
@@ -468,7 +476,7 @@ export default function VisualizationPage() {
     // --- zoom behavior ---
     const zoom = d3
       .zoom()
-      .scaleExtent([0.1, 10])
+      .scaleExtent([0.3, 4])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
         setZoomLevel(event.transform.k);
@@ -485,10 +493,26 @@ export default function VisualizationPage() {
         .join("line")
         .attr("x1", (d) => d.source.x)
         .attr("y1", (d) => d.source.y)
-        .attr("x2", (d) => d.target.x)
-        .attr("y2", (d) => d.target.y)
+        .attr("x2", (d) => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+          const radius = d.target.type === "table" ? Tnode : ANode;
+
+          return d.target.x - (dx / dist) * radius;
+        })
+        .attr("y2", (d) => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+          const radius = d.target.type === "table" ? Tnode : ANode;
+
+          return d.target.y - (dy / dist) * radius;
+        })
         .attr("marker-end", (d) =>
-          d.target.type === "attribute" ? "url(#attr-arrow)" : "url(#arrow)"
+          d.target.type === "attribute" ? "url(#attr-arrow)" : "url(#arrow)",
         );
 
       nodeGroup
@@ -497,8 +521,7 @@ export default function VisualizationPage() {
     });
 
     return () => sim.stop();
-  }, [dimensions, graphKey, settings, schema]); // <-- ADD schema HERE
-
+  }, [dimensions, graphKey, settings, schema]);
   // 4. Search Filter Effect (remains the same)
   useEffect(() => {
     if (!selectionsRef.current.nodeGroup) return;
@@ -511,13 +534,14 @@ export default function VisualizationPage() {
           ? d.label.toLowerCase().includes(searchTermLower)
             ? 1
             : 0.2
-          : 1
+          : 1,
       );
   }, [searchTerm]);
 
   const resetView = () => {
     if (svgRef.current && zoomRef.current) {
       const svg = d3.select(svgRef.current);
+
       svg
         .transition()
         .duration(750)
@@ -590,6 +614,9 @@ export default function VisualizationPage() {
               <ArrowUturnLeftIcon className="button-icon" />
               Undo
             </button>
+            <button onClick={exportPDF} className="button">
+              📄 Export PDF
+            </button>
           </div>
         </div>
 
@@ -601,7 +628,11 @@ export default function VisualizationPage() {
           <div className="schema-info-row">
             <span className="schema-info-row-label">DB Type</span>
             <strong className="schema-info-row-value-db">
-              {schema.db_type}
+              {dbType
+                ? dbType.toUpperCase()
+                : schema.nodes?.length
+                  ? "Detected DB"
+                  : "Unknown"}
             </strong>
           </div>
           <div className="schema-info-row">

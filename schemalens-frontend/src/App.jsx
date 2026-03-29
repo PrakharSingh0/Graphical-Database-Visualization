@@ -9,6 +9,7 @@ function App() {
     <div className="App">
       <Routes>
         <Route path="/" element={<VisualizationPage />} />
+        <Route path="/visualization" element={<VisualizationPage />} />
         <Route path="/connections" element={<ConnectionsPage />} />
       </Routes>
     </div>

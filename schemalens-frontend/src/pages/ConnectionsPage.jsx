@@ -1,362 +1,303 @@
-// src/pages/ConnectionsPage.jsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import "./ConnectionsPage.css";
-
-import DBNameModal from "../components/DBNameModal";
-
-/**
- * ConnectionsPage.jsx
- * - Lists saved connection profiles
- * - Create new profiles
- * - Trigger schema discovery using saved profiles
- *
- * Works with Vite (import.meta.env.VITE_BACKEND_URL) and CRA (process.env.REACT_APP_BACKEND_URL)
- * Falls back to http://localhost:8000
- */
-
-/* Helper: normalize backend export path -> ensure forward slashes and leading slash */
-function normalizeExportPath(p) {
-  if (!p) return null;
-  // replace backslashes with forward slashes
-  let path = p.replace(/\\/g, "/");
-  // remove duplicate leading slashes then add single leading slash
-  path = "/" + path.replace(/^\/+/, "");
-  return path;
-}
-
-// Map db_type -> backend discovery endpoint
-function getDiscoveryEndpoint(dbType) {
-  switch (dbType) {
-    case "mysql":
-      return "/api/schema/mysql";
-    case "mongodb":
-      return "/api/schema/mongo";
-    case "postgres":
-      return "/api/schema/postgres";
-    case "sqlite":
-      return "/api/schema/sqlite";
-    default:
-      // fallback
-      return "/api/schema/mysql";
-  }
-}
+import { useNavigate } from "react-router-dom";
 
 export default function ConnectionsPage() {
-  const [connections, setConnections] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // modal state for MongoDB db_name
-  const [mongoModalOpen, setMongoModalOpen] = useState(false);
-  const [pendingConnection, setPendingConnection] = useState(null);
+  const [connections, setConnections] = useState([]);
+  const [error, setError] = useState(null);
 
-  // form state
   const [name, setName] = useState("");
   const [dbType, setDbType] = useState("mysql");
-  const [connString, setConnString] = useState("");
+  const [mode, setMode] = useState("local");
+  const [config, setConfig] = useState({});
+  const [editingId, setEditingId] = useState(null); // ✅ NEW
+  const [loadingId, setLoadingId] = useState(null);
 
-  // discovery status map (connectionId -> { loading, lastSchema, error, export_path })
-  const [discoverStatus, setDiscoverStatus] = useState({});
-
-  // SAFE universal environment variable loader (no runtime errors)
-  const BACKEND_BASE =
-    (typeof import.meta !== "undefined" &&
-      import.meta.env &&
-      import.meta.env.VITE_BACKEND_URL) ||
-    (typeof process !== "undefined" &&
-      process.env &&
-      process.env.REACT_APP_BACKEND_URL) ||
-    "http://localhost:8000";
+  const BACKEND = "http://localhost:8000";
 
   useEffect(() => {
     fetchConnections();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchConnections() {
-    setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${BACKEND_BASE}/api/connections/`);
-      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      const res = await fetch(`${BACKEND}/api/connections/`);
       const data = await res.json();
-      setConnections(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("fetchConnections error:", err);
-      setError(String(err.message || err));
-    } finally {
-      setLoading(false);
+      setConnections(data);
+    } catch {
+      setError("Failed to load connections");
     }
   }
 
-  async function handleCreate(e) {
-    e.preventDefault();
-    setError(null);
-    if (!name || !dbType || !connString) {
-      setError("Please fill all fields");
-      return;
-    }
-    try {
-      const payload = { name, db_type: dbType, connection_string: connString };
-      console.log("Creating connection:", payload);
-      const res = await fetch(`${BACKEND_BASE}/api/connections/`, {
+  function handleChange(e) {
+    setConfig({ ...config, [e.target.name]: e.target.value });
+  }
+
+  async function testConnection() {
+    const res = await fetch(`${BACKEND}/api/test-connection/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ db_type: dbType, config }),
+    });
+
+    const data = await res.json();
+    alert(data.status === "success" ? "✅ Connected" : data.message);
+  }
+
+  // ✅ SAVE / UPDATE
+  async function saveConnection() {
+    const payload = {
+      name,
+      db_type: dbType,
+      mode,
+      config,
+    };
+
+    if (editingId) {
+      // UPDATE
+      await fetch(`${BACKEND}/api/connections/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      // CREATE
+      await fetch(`${BACKEND}/api/connections/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Server ${res.status}: ${text}`);
-      }
-      const saved = await res.json();
-      // prepend to list
-      setConnections((c) => [saved, ...c]);
-      setName("");
-      setConnString("");
-      setDbType("mysql");
-    } catch (err) {
-      console.error("handleCreate error:", err);
-      setError(String(err.message || err));
     }
+
+    resetForm();
+    fetchConnections();
   }
 
-  // 🔥 Delete a saved connection
-  async function handleDelete(conn) {
-    if (!conn?.id) return;
-    const yes = window.confirm(
-      `Delete connection "${conn.name}" (${conn.db_type})?`
-    );
-    if (!yes) return;
+  // ✅ DELETE
+  async function deleteConnection(id) {
+    if (!window.confirm("Delete this connection?")) return;
 
-    try {
-      const res = await fetch(`${BACKEND_BASE}/api/connections/${conn.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Delete failed (${res.status}): ${txt}`);
-      }
-      // Remove from local state
-      setConnections((prev) => prev.filter((c) => c.id !== conn.id));
-      // Clean any discovery status
-      setDiscoverStatus((prev) => {
-        const copy = { ...prev };
-        delete copy[conn.id];
-        return copy;
-      });
-    } catch (err) {
-      console.error("handleDelete error:", err);
-      setError(`Delete failed: ${err.message || err}`);
-    }
+    await fetch(`${BACKEND}/api/connections/${id}`, {
+      method: "DELETE",
+    });
+
+    fetchConnections();
   }
 
-  // runDiscovery handles the actual POST to backend for all DB types
-  async function runDiscovery(body, conn) {
-    const id = conn.id;
-    setDiscoverStatus((s) => ({
-      ...s,
-      [id]: { loading: true, lastSchema: null, error: null },
-    }));
-    try {
-      const endpoint = getDiscoveryEndpoint(conn.db_type);
-      console.log("Running discovery", endpoint, body);
-      const res = await fetch(`${BACKEND_BASE}${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      // try parse JSON safely
-      let payload = null;
-      try {
-        payload = await res.json();
-      } catch (e) {
-        // If response is not JSON, preserve text for debugging
-        const txt = await res.text();
-        console.warn("Non-JSON discovery response:", txt);
-        throw new Error(txt || `Status ${res.status}`);
-      }
-
-      if (!res.ok) {
-        const detail =
-          payload?.detail || payload?.error || `Status ${res.status}`;
-        throw new Error(detail);
-      }
-
-      // normalize export_path before saving
-      const normalizedPath = normalizeExportPath(payload?.export_path);
-
-      setDiscoverStatus((s) => ({
-        ...s,
-        [id]: {
-          loading: false,
-          lastSchema: payload?.schema ?? null,
-          error: null,
-          export_path: normalizedPath ?? null,
-        },
-      }));
-
-      // If backend returned export_path, navigate to visualization and pass URL in state
-      if (normalizedPath) {
-        navigate("/", {
-          state: { schemaUrl: `${BACKEND_BASE}${normalizedPath}` },
-        });
-      }
-    } catch (err) {
-      console.error("runDiscovery error:", err);
-      setDiscoverStatus((s) => ({
-        ...s,
-        [id]: {
-          loading: false,
-          lastSchema: null,
-          error: String(err.message || err),
-        },
-      }));
-    }
+  // ✅ EDIT (LOAD INTO FORM)
+  function editConnection(conn) {
+    setEditingId(conn.id);
+    setName(conn.name);
+    setDbType(conn.db_type);
+    setMode(conn.mode);
+    setConfig(conn.config);
   }
 
-  // handleDiscover opens Mongo modal if needed, otherwise runs discovery immediately
-  function handleDiscover(conn) {
-    if (conn.db_type === "mongodb") {
-      setPendingConnection(conn);
-      setMongoModalOpen(true);
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setConfig({});
+  }
+
+  // ✅ DISCOVER
+  async function discover(id) {
+  try {
+    setLoadingId(id); // ✅ start loading
+
+    const res = await fetch(`${BACKEND}/api/schema/discover/${id}`, {
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      alert(data.error);
+      setLoadingId(null);
       return;
     }
-    // mysql, postgres, sqlite
-    runDiscovery({ connection_id: conn.id }, conn);
+
+    navigate("/visualization", {
+  state: {
+    schema: data,
+  },
+});
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingId(null); // ✅ stop loading
   }
-
-  // called when modal submits db_name
-  function handleMongoSubmit(dbName) {
-    const conn = pendingConnection;
-    if (!conn) return;
-    setMongoModalOpen(false);
-    setPendingConnection(null);
-    runDiscovery({ connection_id: conn.id, db_name: dbName }, conn);
-  }
-
-  function renderConnRow(conn) {
-    const status = discoverStatus[conn.id] || {};
-    const exportPath = status?.export_path ? status.export_path : null; // already normalized in state
-    return (
-      <div key={conn.id} className="connection-card">
-        <div className="connection-info">
-          <div className="connection-name">
-            {conn.name}{" "}
-            <span className="connection-type">({conn.db_type})</span>
-          </div>
-          <div className="connection-string">{conn.connection_string}</div>
-        </div>
-
-        <div className="connection-actions">
-          <button
-            className="btn btn-blue-sm"
-            onClick={() => handleDiscover(conn)}
-            disabled={status?.loading}
-          >
-            {status?.loading ? "Discovering..." : "Discover"}
-          </button>
-
-          <button
-            className="btn btn-red-sm"
-            onClick={() => handleDelete(conn)}
-            style={{ marginLeft: "8px" }}
-          >
-            Delete
-          </button>
-
-          {status?.error && (
-            <div className="error-text" style={{ fontSize: "12px" }}>
-              {status.error}
-            </div>
-          )}
-
-          {exportPath && (
-            <a
-              className="json-link"
-              href={`${BACKEND_BASE}${exportPath}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open exported JSON
-            </a>
-          )}
-        </div>
-      </div>
-    );
-  }
+}
 
   return (
     <div className="connections-page">
-      <h2 className="connections-title">Connection Profiles</h2>
+      <h2 className="connections-title">
+        {editingId ? "Edit Connection" : "Connection Profiles"}
+      </h2>
 
-      {/* Create form */}
-      <form onSubmit={handleCreate} className="connections-form">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Profile name (eg. local mysql)"
-          className="connections-input"
-        />
+      {/* ===== FORM ===== */}
+      <div className="add-connection-container">
+        <div className="add-connection-top">
+          <select value={dbType} onChange={(e) => setDbType(e.target.value)}>
+            <option value="mysql">MySQL</option>
+            <option value="mongodb">MongoDB</option>
+          </select>
 
-        <select
-          value={dbType}
-          onChange={(e) => setDbType(e.target.value)}
-          className="connections-select"
-        >
-          <option value="mysql">MySQL</option>
-          <option value="mongodb">MongoDB</option>
-          <option value="postgres">Postgres</option>
-          <option value="sqlite">SQLite</option>
-        </select>
-
-        <input
-          value={connString}
-          onChange={(e) => setConnString(e.target.value)}
-          placeholder="Connection string"
-          className="connections-input"
-        />
-
-        <div style={{ gridColumn: "1 / span 3", display: "flex", gap: "10px" }}>
-          <button type="submit" className="btn btn-green">
-            Save profile
-          </button>
-          <button
-            type="button"
-            onClick={fetchConnections}
-            className="btn btn-gray"
-          >
-            Refresh
-          </button>
+          <select value={mode} onChange={(e) => setMode(e.target.value)}>
+            <option value="local">Local</option>
+            <option value="cloud">Cloud</option>
+          </select>
         </div>
-      </form>
+
+        <div className="add-connection-form">
+          <input
+            placeholder="Connection Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          {/* MYSQL */}
+          {dbType === "mysql" && mode === "local" && (
+            <div className="form-row">
+              <input
+                name="host"
+                placeholder="Host"
+                onChange={handleChange}
+                value={config.host || ""}
+              />
+              <input
+                name="port"
+                placeholder="Port"
+                onChange={handleChange}
+                value={config.port || ""}
+              />
+              <input
+                name="username"
+                placeholder="Username"
+                onChange={handleChange}
+                value={config.username || ""}
+              />
+              <input
+                name="password"
+                placeholder="Password"
+                onChange={handleChange}
+                value={config.password || ""}
+              />
+              <input
+                name="database"
+                placeholder="Database"
+                onChange={handleChange}
+                value={config.database || ""}
+              />
+            </div>
+          )}
+
+          {/* MONGO LOCAL */}
+          {dbType === "mongodb" && mode === "local" && (
+            <div className="form-row">
+              <input
+                name="host"
+                placeholder="Host"
+                onChange={handleChange}
+                value={config.host || ""}
+              />
+              <input
+                name="port"
+                placeholder="Port"
+                onChange={handleChange}
+                value={config.port || ""}
+              />
+              <input
+                name="database"
+                placeholder="Database"
+                onChange={handleChange}
+                value={config.database || ""}
+              />
+            </div>
+          )}
+
+          {/* MONGO CLOUD */}
+          {dbType === "mongodb" && mode === "cloud" && (
+            <div className="form-row">
+              <input
+                name="uri"
+                placeholder="Mongo URI"
+                onChange={handleChange}
+                value={config.uri || ""}
+              />
+              <input
+                name="database"
+                placeholder="Database Name"
+                onChange={handleChange}
+                value={config.database || ""}
+              />
+            </div>
+          )}
+
+          <div className="add-connection-actions">
+            <button className="btn btn-test" onClick={testConnection}>
+              Test
+            </button>
+
+            <button className="btn btn-green" onClick={saveConnection}>
+              {editingId ? "Update" : "Save"}
+            </button>
+
+            {editingId && (
+              <button className="btn btn-gray" onClick={resetForm}>
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ===== LIST ===== */}
+      <div className="space-y-3">
+        {connections.map((c) => (
+          <div key={c.id} className="connection-card">
+            <div className="connection-info">
+              <div className="connection-name">
+                {c.name} <span className="connection-type">({c.db_type})</span>
+              </div>
+              <div className="connection-string">
+                {JSON.stringify(c.config)}
+              </div>
+            </div>
+
+            <div className="connection-actions">
+              <button
+                className={`btn btn-discover ${loadingId === c.id ? "loading" : ""}`}
+                onClick={() => discover(c.id)}
+                disabled={loadingId === c.id}
+              >
+                {loadingId === c.id ? (
+                  <span className="spinner"></span>
+                ) : (
+                  "Discover"
+                )}
+              </button>
+              <button
+                className="btn btn-gray"
+                onClick={() => editConnection(c)}
+              >
+                Edit
+              </button>
+
+              <button
+                className="btn btn-red-sm"
+                onClick={() => deleteConnection(c.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {error && <div className="error-text">{error}</div>}
-      {loading && <div className="loading-text">Loading connections...</div>}
-
-      <div className="space-y-3">
-        {connections.length === 0 && (
-          <div className="loading-text">No connections saved yet.</div>
-        )}
-        {connections.map(renderConnRow)}
-      </div>
-
-      <div className="tip-text">
-        Tip: For MongoDB discovery you may need to provide <code>db_name</code>{" "}
-        when triggering discovery — this UI will ask you for it in a modal.
-      </div>
-
-      {/* DB Name Modal for MongoDB discovery */}
-      <DBNameModal
-        isOpen={mongoModalOpen}
-        onClose={() => {
-          setMongoModalOpen(false);
-          setPendingConnection(null);
-        }}
-        onSubmit={handleMongoSubmit}
-      />
     </div>
   );
 }

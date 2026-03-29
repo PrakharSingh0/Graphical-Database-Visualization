@@ -1,0 +1,120 @@
+/* ===== ADD CONNECTION SECTION ===== */
+
+.add-connection-container {
+  padding: 22px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  box-shadow: 0 0 20px rgba(0, 224, 255, 0.08);
+}
+
+/* Section header */
+.add-connection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.add-connection-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Toggle row (DB + Mode) */
+.add-connection-top {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Dynamic form grid */
+.add-connection-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Row grouping */
+.form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Input styling (override existing if needed) */
+.add-connection-form input,
+.add-connection-form select {
+  flex: 1;
+  min-width: 140px;
+
+  padding: 12px;
+  border-radius: 6px;
+
+  background: #0a101b;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 14px;
+
+  transition: 0.2s ease;
+}
+
+.add-connection-form input:focus,
+.add-connection-form select:focus {
+  outline: none;
+  border-color: var(--neon);
+  box-shadow: 0 0 10px #00e0ff66;
+}
+
+/* Button group */
+.add-connection-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* Highlight active select (nice touch) */
+.add-connection-form select {
+  cursor: pointer;
+}
+
+/* Labels (optional but useful) */
+.input-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+/* Field wrapper */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 140px;
+}
+
+/* ===== MODE BADGE ===== */
+.mode-badge {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--neon);
+  color: var(--neon);
+  background: rgba(0, 224, 255, 0.1);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .add-connection-top {
+    flex-direction: column;
+  }
+
+  .add-connection-actions {
+    flex-direction: column;
+  }
+}
