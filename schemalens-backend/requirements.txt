@@ -6,3 +6,5 @@ sqlalchemy
 pymysql
 pymongo
 python-dotenv
+networkx
+cryptography

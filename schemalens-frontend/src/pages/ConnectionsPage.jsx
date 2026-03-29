@@ -102,32 +102,33 @@ export default function ConnectionsPage() {
   }
 
   // ✅ DISCOVER
-  async function discover(id) {
+  async function discover(conn) {
   try {
-    setLoadingId(id); // ✅ start loading
+    setLoadingId(conn.id); // ✅ FIX
 
-    const res = await fetch(`${BACKEND}/api/schema/discover/${id}`, {
+    const res = await fetch(`${BACKEND}/api/schema/discover/${conn.id}`, {
       method: "POST",
     });
+    console.log("conn.id:", conn.id, typeof conn.id);
 
     const data = await res.json();
 
     if (data.error) {
       alert(data.error);
-      setLoadingId(null);
       return;
     }
 
     navigate("/visualization", {
-  state: {
-    schema: data,
-  },
-});
-
+      state: {
+        schema: data,
+        dbType: conn.db_type,   // ✅ FIX
+        connectionId: conn.id,  // ✅ FIX
+      },
+    });
   } catch (err) {
     console.error(err);
   } finally {
-    setLoadingId(null); // ✅ stop loading
+    setLoadingId(null);
   }
 }
 
@@ -270,7 +271,7 @@ export default function ConnectionsPage() {
             <div className="connection-actions">
               <button
                 className={`btn btn-discover ${loadingId === c.id ? "loading" : ""}`}
-                onClick={() => discover(c.id)}
+                onClick={() => discover(c)}
                 disabled={loadingId === c.id}
               >
                 {loadingId === c.id ? (

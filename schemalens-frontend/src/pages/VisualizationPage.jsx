@@ -22,14 +22,13 @@ import "./VisualizationPage.css";
 
 // D3 Style Constants are now managed in state
 const INITIAL_SETTINGS = {
-  TABLE_COLOR: "#00B4FF",
-  TABLE_STROKE: "#0088C0",
+  TABLE_STROKE: "#c0c0c0",
   ATTRIBUTE_COLOR: "#00CC99",
   ATTRIBUTE_STROKE: "#008866",
   LINK_COLOR: "#94a3b8",
   TEXT_COLOR: "#dbdbdbff",
   ATTRIBUTE_RADIUS: 120,
-  MAX_ACTIVE_TABLES: 3,
+  MAX_ACTIVE_TABLES: 10,
   Tnode: 30,
   ANode: 15,
   TRANSITION_DURATION: 350,
@@ -65,6 +64,88 @@ export default function VisualizationPage() {
   const [loadingSchema, setLoadingSchema] = useState(false);
   const [schemaError, setSchemaError] = useState(null);
 
+  const [analysis, setAnalysis] = useState(null);
+  const [riskMap, setRiskMap] = useState({});
+
+  useEffect(() => {
+    console.log("📦 location.state:", location.state);
+  }, []);
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const connectionId = location.state?.connectionId;
+
+        if (!connectionId) {
+          console.warn("⚠ No connectionId found");
+          return;
+        }
+
+        console.log("✅ Fetching analysis for:", connectionId);
+
+        const res = await fetch(
+          `http://localhost:8000/api/analyze/${connectionId}`,
+        );
+        const data = await res.json();
+
+        console.log("📊 analysis:", data);
+
+        setAnalysis(data);
+
+        const map = {};
+        data.analysis?.forEach((item) => {
+          map[item.table] = item;
+        });
+
+        setRiskMap(map);
+      } catch (err) {
+        console.error("❌ Analysis fetch failed", err);
+      }
+    };
+
+    fetchAnalysis();
+  }, [location.state]);
+
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const connectionId = location.state?.connectionId;
+        if (!connectionId) return;
+
+        const res = await fetch(
+          `http://localhost:8000/api/analyze/${connectionId}`,
+        );
+
+        const text = await res.text();
+
+        try {
+          const data = JSON.parse(text);
+
+          console.log("📊 analysis:", data);
+
+          setAnalysis(data);
+
+          const map = {};
+          data.analysis?.forEach((item) => {
+            map[item.table] = item;
+          });
+
+          setRiskMap(map);
+        } catch (err) {
+          console.error("❌ Not JSON response:", text);
+        }
+      } catch (err) {
+        console.error("Analysis fetch failed", err);
+      }
+    };
+
+    fetchAnalysis();
+  }, [location.state]);
+
+  useEffect(() => {
+    if (Object.keys(riskMap).length > 0) {
+      setGraphKey((k) => k + 1);
+    }
+  }, [riskMap]);
   // ✅ Update when navigation changes
   useEffect(() => {
     if (incomingSchema && incomingSchema.nodes) {
@@ -127,7 +208,6 @@ export default function VisualizationPage() {
 
     // --- Destructure settings from state ---
     const {
-      TABLE_COLOR,
       TABLE_STROKE,
       ATTRIBUTE_COLOR,
       ATTRIBUTE_STROKE,
@@ -148,12 +228,27 @@ export default function VisualizationPage() {
     const safeNodes = schema && schema.nodes ? schema.nodes : [];
     const safeEdges = schema && schema.edges ? schema.edges : [];
 
-    graphDataRef.current.nodes = safeNodes.map((n) => ({
+    const sortedNodes = [...safeNodes].sort((a, b) => {
+      const riskA = riskMap[a.id]?.risk_score || 0;
+      const riskB = riskMap[b.id]?.risk_score || 0;
+      return riskB - riskA; // high risk first
+    });
+
+    graphDataRef.current.nodes = sortedNodes.map((n, i) => ({
       ...n,
       label: n.label || n.id,
       type: "table",
       expanded: n.expanded || false,
+      x: width / 2 + Math.cos(i) * 100,
+      y: height / 2 + Math.sin(i) * 100,
     }));
+
+    // graphDataRef.current.nodes = safeNodes.map((n) => ({
+    //   ...n,
+    //   label: n.label || n.id,
+    //   type: "table",
+    //   expanded: n.expanded || false,
+    // }));
     graphDataRef.current.links = safeEdges
       .map((e) => ({
         source: graphDataRef.current.nodes.find((n) => n.id === e.source),
@@ -189,23 +284,34 @@ export default function VisualizationPage() {
     const linkForce = d3
       .forceLink(links)
       .id((d) => d.id)
-      .distance((d) => (d.target.type === "attribute" ? 40 : Tnode + 150)) // Use Tnode
-      .strength(0.5);
+      .distance((d) => {
+        // 🔥 Attribute edges (short)
+        if (d.target.type === "attribute") return 100;
+
+        // 🔥 Table-to-table edges (long)
+        return 250;
+      })
+      .strength((d) => {
+        // Attributes tightly connected
+        if (d.target.type === "attribute") return 1;
+
+        // Tables looser
+        return 0.5;
+      });
 
     // --- Simulation Setup ---
     const sim = d3
       .forceSimulation(nodes)
-      .force("link", linkForce)
-      .force("charge", d3.forceManyBody().strength(-600))
-      .force("link", linkForce.distance(180))
-      .force(
-        "collision",
-        d3.forceCollide().radius((d) => (d.type === "table" ? 50 : 25)),
-      )
+      .force("link", linkForce) // ✅ only once
+      .force("charge", d3.forceManyBody().strength(-500))
       .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("x", d3.forceX(width / 2).strength(0.05))
+      .force("y", d3.forceY(height / 2).strength(0.05))
       .force(
         "collision",
-        d3.forceCollide().radius((d) => (d.type === "table" ? Tnode : ANode)), // Use Tnode/ANode
+        d3
+          .forceCollide()
+          .radius((d) => (d.type === "table" ? Tnode + 10 : ANode + 5)),
       );
 
     simRef.current = sim;
@@ -258,9 +364,24 @@ export default function VisualizationPage() {
           (update) => update,
           (exit) => exit.remove(),
         )
-        .attr("stroke", (d) =>
-          d.target.type === "attribute" ? ATTRIBUTE_COLOR : LINK_COLOR,
-        );
+        .attr("stroke", (d) => {
+          if (d.target.type === "attribute") return ATTRIBUTE_COLOR;
+
+          const sourceRisk = riskMap[d.source.id]?.risk_score || 0;
+          const targetRisk = riskMap[d.target.id]?.risk_score || 0;
+
+          if (sourceRisk > 70 || targetRisk > 70) {
+            return "#ff4d4f"; // 🔴 risky edge
+          }
+
+          return LINK_COLOR;
+        })
+        .attr("stroke-width", (d) => {
+          const sourceRisk = riskMap[d.source.id]?.risk_score || 0;
+          const targetRisk = riskMap[d.target.id]?.risk_score || 0;
+
+          return sourceRisk > 70 || targetRisk > 70 ? 3 : 1.8;
+        });
 
       // 2. Update Nodes
       nodeGroup
@@ -279,9 +400,15 @@ export default function VisualizationPage() {
             gEnter
               .append("circle")
               .attr("r", (d) => (d.type === "table" ? Tnode : ANode))
-              .attr("fill", (d) =>
-                d.type === "table" ? TABLE_COLOR : ATTRIBUTE_COLOR,
-              )
+              .attr("fill", (d) => {
+                if (d.type !== "table") return ATTRIBUTE_COLOR;
+
+                const risk = riskMap[d.id]?.risk_score || 0;
+
+                if (risk >= 50) return "#ff4d4f"; // 🔴 high risk
+                if (risk >= 30) return "#faad14"; // 🟡 medium
+                return "#52c41a"; // 🟢 safe
+              })
               .attr("stroke", (d) =>
                 d.type === "table" ? TABLE_STROKE : ATTRIBUTE_STROKE,
               )
@@ -322,6 +449,24 @@ export default function VisualizationPage() {
           (update) => update,
           (exit) => exit.remove(),
         );
+      // 🔥 UPDATE COLORS FOR ALL NODES (IMPORTANT)
+      nodeGroup
+        .selectAll("circle")
+        .transition()
+        .duration(300)
+        .attr("fill", (d) => {
+          if (d.type !== "table") return ATTRIBUTE_COLOR;
+
+          const risk = riskMap[d.id]?.risk_score || 0;
+
+          if (risk >= 70) return "#ff4d4f"; // 🔴 high
+          if (risk >= 40) return "#faad14"; // 🟡 medium
+          return "#52c41a"; // 🟢 low
+        })
+        .style("filter", (d) => {
+          const risk = riskMap[d.id]?.risk_score || 0;
+          return risk > 70 ? "drop-shadow(0 0 5px #ff4d4f)" : "none";
+        });
 
       if (simRestart) {
         sim.nodes(nodes);
@@ -521,7 +666,7 @@ export default function VisualizationPage() {
     });
 
     return () => sim.stop();
-  }, [dimensions, graphKey, settings, schema]);
+  }, [dimensions, graphKey, settings, schema, riskMap]);
   // 4. Search Filter Effect (remains the same)
   useEffect(() => {
     if (!selectionsRef.current.nodeGroup) return;
@@ -670,7 +815,44 @@ export default function VisualizationPage() {
         <div className="zoom-level">Zoom: {Math.round(zoomLevel * 100)}%</div>
       </aside>
 
-      <div className="main-content" ref={containerRef}>
+      <aside className="risk-panel">
+        <h4 className="risk-title">⚠ Risk Analysis</h4>
+
+        <div className="risk-content">
+          {" "}
+          {/* 🔥 NEW WRAPPER */}
+          {!analysis && <p className="risk-loading">Loading...</p>}
+          {analysis?.analysis
+            ?.sort((a, b) => b.risk_score - a.risk_score)
+            .slice(0, 10)
+            .map((item) => (
+              <div key={item.table} className="risk-card">
+                <div className="risk-header">
+                  <strong>{item.table}</strong>
+                  <span className="risk-score">{item.risk_score}</span>
+                </div>
+
+                <div className="risk-issues">
+                  {item.issues?.length ? (
+                    item.issues.map((i, idx) => (
+                      <div key={idx} className="risk-issue">
+                        ⚠ {i}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="risk-safe">No issues</div>
+                  )}
+                </div>
+              </div>
+            ))}
+        </div>
+      </aside>
+
+      <div
+        className="main-content"
+        ref={containerRef}
+        style={{ position: "relative" }}
+      >
         <svg ref={svgRef} width="100%" height="100%"></svg>
         <div className="pan-zoom-hint">Scroll to zoom, Drag to pan</div>
       </div>

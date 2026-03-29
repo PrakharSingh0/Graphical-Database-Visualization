@@ -349,4 +349,100 @@
   color: #94a3b8;
 }
 
+/* Title */
+.risk-title {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 15, 25, 0.95);
+  padding-bottom: 6px;
+  z-index: 2;
+}
 
+/* Card */
+.risk-card {
+  background: rgba(20, 30, 45, 0.6);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+
+  transition: all 0.2s ease;
+}
+
+.risk-card:hover {
+  transform: translateY(-2px);
+  background: rgba(30, 50, 70, 0.7);
+}
+
+/* Header */
+.risk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Risk Score */
+.risk-score {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #ff4d4f;
+  color: white;
+}
+
+/* Issues */
+.risk-issues {
+  margin-top: 6px;
+}
+
+.risk-issue {
+  font-size: 12px;
+  color: #ff7875;
+}
+
+/* Safe */
+.risk-safe {
+  font-size: 12px;
+  color: #52c41a;
+}
+
+/* Loading */
+.risk-loading {
+  font-size: 12px;
+  color: #aaa;
+}
+.risk-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+
+  width: 300px;
+  max-height: 70vh;   /* 🔥 important */
+
+  display: flex;
+  flex-direction: column;
+
+  background: rgba(10, 15, 25, 0.9);
+  backdrop-filter: blur(10px);
+
+  border-radius: 12px;
+  padding: 12px;
+
+  overflow: hidden;   /* 🔥 important */
+  z-index: 10;
+}
+
+.risk-content {
+  overflow-y: auto;   /* 🔥 makes it scroll */
+  flex: 1;            /* fills remaining space */
+  padding-right: 6px;
+}
+
+/* Smooth scrollbar */
+.risk-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.risk-content::-webkit-scrollbar-thumb {
+  background: #00b4ff;
+  border-radius: 6px;
+}

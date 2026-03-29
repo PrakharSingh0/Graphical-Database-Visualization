@@ -25,9 +25,37 @@ const NodeDetails = ({ node }) => {
           <>
             <h3 className="node-details-columns-header">Columns</h3>
             <ul className="node-details-columns-list">
-              {node.columns.map((col, idx) => (
-                <li key={idx}>{col}</li>
-              ))}
+              {node.columns.map((col, idx) => {
+                let name = col;
+                let isPK = false;
+                let isFK = false;
+
+                // 🔥 Handle string columns
+                if (typeof col === "string") {
+                  name = col;
+
+                  if (col.toLowerCase() === "id") isPK = true; // PK
+                  if (col.toLowerCase().endsWith("_id")) isFK = true; // FK
+                }
+
+                // 🔥 Handle object columns (future-safe)
+                else if (typeof col === "object") {
+                  name = col.name;
+                  isPK = col.primary_key;
+                  isFK = col.foreign_key;
+                }
+
+                return (
+                  <li key={idx} className="column-row">
+                    <span>{name}</span>
+
+                    <span className="column-tags">
+                      {isPK && <span className="pk">PK</span>}
+                      {isFK && <span className="fk">FK</span>}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}

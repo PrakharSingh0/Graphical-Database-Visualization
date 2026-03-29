@@ -55,3 +55,28 @@
 .node-details-columns-list li:last-child {
   border-bottom: none;
 }
+
+.column-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.column-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.pk {
+  color: #00e0ff;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.fk {
+  color: #faad14;
+  font-weight: 600;
+  font-size: 11px;
+}

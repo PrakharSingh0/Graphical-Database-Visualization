@@ -69,13 +69,6 @@ export default function SettingsModal({
         <div className="modal-body">
           <h4>Colors</h4>
           <SettingsInput
-            label="Table Color"
-            type="color"
-            name="TABLE_COLOR"
-            value={modalSettings.TABLE_COLOR}
-            onChange={handleChange}
-          />
-          <SettingsInput
             label="Table Stroke"
             type="color"
             name="TABLE_STROKE"
